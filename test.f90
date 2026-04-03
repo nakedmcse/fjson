@@ -39,7 +39,7 @@ program test
             character(len=*), parameter :: input_float = '-67.67'
             ! When
             result_int = parse_json(input_int)
-            result_float = parse_json(input_float)
+            result_float =  parse_json(input_float)
             ! Then
             call assert(result_int%node_type == "INT", "Integer: Node type wrong - " // result_int%node_type // " " // result_int%value_string)
             call assert(result_int%value_string == input_int, "Integer: Node string value wrong - " // result_int%value_string)
@@ -94,7 +94,7 @@ program test
 
         subroutine test_object()
             ! Given
-            type(json_node) :: result_simple, result_complex
+            type(json_node) :: result_simple, result_complex, first, second
             character(len=*), parameter :: input_simple = '{"number":-7, "string":"x", "bool":true, "null":null}'
             character(len=*), parameter :: input_complex = '{"subobject":{"a":1,"b":2}, "subarray":[3,4]}'
             ! When
@@ -114,16 +114,20 @@ program test
 
             call assert(result_complex%node_type == "OBJECT", "Object-Complex: Root node type wrong - " // result_complex%node_type)
             call assert(result_complex%child_nodes_count == 2, "Object-Complex: Root child node count wrong")
-            call assert(result_complex%child_nodes(1)%node_type == "OBJECT", "Object-Complex: Child Object node type wrong")
-            call assert(result_complex%child_nodes(1)%child_nodes_count == 2, "Object-Complex: Child Object child node count wrong")
-            call assert(result_complex%child_nodes(1)%child_nodes(1)%name == "a", "Object-Complex: Child Object name a wrong")
-            call assert(result_complex%child_nodes(1)%child_nodes(1)%value_int == 1, "Object-Complex: Child Object value a wrong")
-            call assert(result_complex%child_nodes(1)%child_nodes(2)%name == "b", "Object-Complex: Child Object name b wrong")
-            call assert(result_complex%child_nodes(1)%child_nodes(2)%value_int == 2, "Object-Complex: Child Object value b wrong")
-            call assert(result_complex%child_nodes(2)%node_type == "ARRAY", "Object-Complex: Child Array node type wrong")
-            call assert(result_complex%child_nodes(2)%child_nodes_count == 2, "Object-Complex: Child Array child node count wrong")
-            call assert(result_complex%child_nodes(2)%child_nodes(1)%value_int == 3, "Object-Complex: Child Array first value wrong")
-            call assert(result_complex%child_nodes(2)%child_nodes(2)%value_int == 4, "Object-Complex: Child Array second value wrong")
+            call first%copy_from(result_complex%child_nodes(1))
+            call assert(first%node_type == "OBJECT", "Object-Complex: Child Object node type wrong")
+            call assert(first%name == "subobject", "Object-Complex: Child Object node name wrong")
+            call assert(first%child_nodes_count == 2, "Object-Complex: Child Object child node count wrong")
+            call assert(first%child_nodes(1)%name == "a", "Object-Complex: Child Object name a wrong")
+            call assert(first%child_nodes(1)%value_int == 1, "Object-Complex: Child Object value a wrong")
+            call assert(first%child_nodes(2)%name == "b", "Object-Complex: Child Object name b wrong")
+            call assert(first%child_nodes(2)%value_int == 2, "Object-Complex: Child Object value b wrong")
+            call second%copy_from(result_complex%child_nodes(2))
+            call assert(second%node_type == "ARRAY", "Object-Complex: Child Array node type wrong")
+            call assert(second%name == "subarray", "Object-Complex: Child Array node name wrong")
+            call assert(second%child_nodes_count == 2, "Object-Complex: Child Array child node count wrong")
+            call assert(second%child_nodes(1)%value_int == 3, "Object-Complex: Child Array first value wrong")
+            call assert(second%child_nodes(2)%value_int == 4, "Object-Complex: Child Array second value wrong")
             print *, "Object Test successful"
         end subroutine test_object
 

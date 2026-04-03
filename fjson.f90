@@ -7,12 +7,15 @@ module fjson
         integer :: value_int = 0
         real :: value_float = 0.0
         logical :: value_bool = .false.
-        character(len=:), allocatable :: value_string
-        character(len=:), allocatable :: node_type  ! INT|FLOAT|BOOL|STRING|NULL|OBJECT|ARRAY|ERROR
-        character(len=:), allocatable :: name  ! Object property name
-        integer :: child_nodes_count
+        character(len=:), pointer :: value_string => null()
+        character(len=:), pointer :: node_type => null() ! INT|FLOAT|BOOL|STRING|NULL|OBJECT|ARRAY|ERROR
+        character(len=:), pointer :: name => null() ! Object property name
+        integer :: child_nodes_count = 0
         type(json_node), dimension(:), allocatable :: child_nodes
         contains
+            procedure init_node
+            procedure destroy_node
+            procedure copy_from
             procedure append_child_node
             procedure create_number_node
             procedure create_string_node
@@ -22,6 +25,14 @@ module fjson
     end type json_node
 
     contains
+        subroutine assign_string(ptr,s)
+            character(len=:), pointer :: ptr
+            character(len=*) :: s
+            if(associated(ptr)) deallocate(ptr)
+            allocate(character(len=len(s)) :: ptr)
+            ptr = s
+        end subroutine assign_string
+
         function parse_json(s) result(res)
             character(len=*), intent(in) :: s
             type(json_node) :: res
@@ -29,19 +40,19 @@ module fjson
             type(token_t) :: tok
 
             pos = 1
-            res = parse_value(s, pos)
+            call parse_value(res, s, pos, "")
 
             call next_token(s, pos, tok)
             if (tok%kind /= token_type_eof) then
-                res%node_type = "ERROR"
-                res%value_string = "Trailing characters after valid JSON"
+                call assign_string(res%node_type,"ERROR")
+                call assign_string(res%value_string,"Trailing characters after valid JSON")
                 res%child_nodes_count = 0
                 if (allocated(res%child_nodes)) deallocate(res%child_nodes)
             end if
         end function parse_json
 
-        recursive function parse_value(s, pos) result(node)
-            character(len=*), intent(in) :: s
+        recursive subroutine parse_value(node, s, pos, key)
+            character(len=*), intent(in) :: s, key
             integer, intent(inout) :: pos
             type(json_node) :: node
             type(token_t) :: tok
@@ -68,11 +79,12 @@ module fjson
                     call parse_object_after_open(node, s, pos)
 
                 case default
-                    node%node_type = "ERROR"
-                    node%value_string = tok%text
+                    call assign_string(node%node_type,"ERROR")
+                    call assign_string(node%value_string,tok%text)
                     node%child_nodes_count = 0
             end select
-        end function parse_value
+            call assign_string(node%name,key)
+        end subroutine parse_value
 
         recursive subroutine parse_array_after_open(this, s, pos)
             class(json_node), intent(inout) :: this
@@ -83,8 +95,7 @@ module fjson
             type(json_node) :: child
             integer :: save_pos
 
-            this%node_type = "ARRAY"
-            this%value_string = ""
+            call assign_string(this%node_type,"ARRAY")
             this%child_nodes_count = 0
             if (allocated(this%child_nodes)) deallocate(this%child_nodes)
 
@@ -97,7 +108,7 @@ module fjson
             pos = save_pos
 
             do
-                child = parse_value(s, pos)
+                call parse_value(child, s, pos, "")
                 call this%append_child_node(child)
 
                 call next_token(s, pos, tok)
@@ -107,8 +118,8 @@ module fjson
                 case (token_type_rbracket)
                     exit
                 case default
-                    this%node_type = "ERROR"
-                    this%value_string = "Expected ',' or ']' in array"
+                    call assign_string(this%node_type,"ERROR")
+                    call assign_string(this%value_string,"Expected ',' or ']' in array")
                     if (allocated(this%child_nodes)) deallocate(this%child_nodes)
                     this%child_nodes_count = 0
                     return
@@ -126,8 +137,7 @@ module fjson
             character(len=:), allocatable :: key
             integer :: save_pos
 
-            this%node_type = "OBJECT"
-            this%value_string = ""
+            call assign_string(this%node_type,"OBJECT")
             this%child_nodes_count = 0
             if (allocated(this%child_nodes)) deallocate(this%child_nodes)
 
@@ -143,8 +153,8 @@ module fjson
                 ! Key must be a string
                 call next_token(s, pos, tok)
                 if (tok%kind /= token_type_string) then
-                    this%node_type = "ERROR"
-                    this%value_string = "Expected string key in object"
+                    call assign_string(this%node_type,"ERROR")
+                    call assign_string(this%value_string,"Expected string key in object")
                     if (allocated(this%child_nodes)) deallocate(this%child_nodes)
                     this%child_nodes_count = 0
                     return
@@ -155,15 +165,14 @@ module fjson
                 ! Must have colon
                 call next_token(s, pos, tok)
                 if (tok%kind /= token_type_colon) then
-                    this%node_type = "ERROR"
-                    this%value_string = "Expected ':' after object key"
+                    call assign_string(this%node_type,"ERROR")
+                    call assign_string(this%value_string,"Expected ':' after object key")
                     if (allocated(this%child_nodes)) deallocate(this%child_nodes)
                     this%child_nodes_count = 0
                     return
                 end if
 
-                child = parse_value(s, pos)
-                child%name = key
+                call parse_value(child, s, pos, key)
                 call this%append_child_node(child)
 
                 call next_token(s, pos, tok)
@@ -173,8 +182,8 @@ module fjson
                 case (token_type_rbrace)
                     exit
                 case default
-                    this%node_type = "ERROR"
-                    this%value_string = "Expected ',' or '}' in object"
+                    call assign_string(this%node_type,"ERROR")
+                    call assign_string(this%value_string,"Expected ',' or '}' in object")
                     if (allocated(this%child_nodes)) deallocate(this%child_nodes)
                     this%child_nodes_count = 0
                     return
@@ -182,35 +191,112 @@ module fjson
             end do
         end subroutine parse_object_after_open
 
+        recursive subroutine destroy_node(this)
+            class(json_node), intent(inout) :: this
+            integer :: i
+
+            if (allocated(this%child_nodes)) then
+                do i = 1, this%child_nodes_count
+                    call this%child_nodes(i)%destroy_node()
+                end do
+                deallocate(this%child_nodes)
+            end if
+
+            if (associated(this%name)) then
+                deallocate(this%name)
+                nullify(this%name)
+            end if
+
+            if (associated(this%value_string)) then
+                deallocate(this%value_string)
+                nullify(this%value_string)
+            end if
+
+            if (associated(this%node_type)) then
+                deallocate(this%node_type)
+                nullify(this%node_type)
+            end if
+
+            this%value_int = 0
+            this%value_float = 0.0
+            this%value_bool = .false.
+            this%child_nodes_count = 0
+        end subroutine destroy_node
+
+        subroutine init_node(this)
+            class(json_node) :: this
+            call this%destroy_node()
+        end subroutine init_node
+
+        recursive subroutine copy_from(this, src)
+            class(json_node), intent(inout) :: this
+            type(json_node), intent(in) :: src
+            integer :: i, n
+
+            call this%destroy_node()
+
+            this%value_int = src%value_int
+            this%value_float = src%value_float
+            this%value_bool = src%value_bool
+            this%child_nodes_count = src%child_nodes_count
+
+            if (associated(src%name)) call assign_string(this%name, src%name)
+            if (associated(src%node_type)) call assign_string(this%node_type, src%node_type)
+            if (associated(src%value_string)) call assign_string(this%value_string, src%value_string)
+
+            n = src%child_nodes_count
+            if (n > 0) then
+                allocate(this%child_nodes(n))
+                do i = 1, n
+                    call this%child_nodes(i)%copy_from(src%child_nodes(i))
+                end do
+            end if
+        end subroutine copy_from
+
         subroutine append_child_node(this, child)
-            class(json_node) :: this, child
-            type(json_node), dimension(:), allocatable :: temp
+            class(json_node), intent(inout) :: this
+            type(json_node), intent(in) :: child
+            type(json_node), allocatable :: temp(:)
+            integer :: i, old_size, new_size
+
             if (.not. allocated(this%child_nodes)) then
                 allocate(this%child_nodes(256))
-            elseif(size(this%child_nodes) - this%child_nodes_count == 0) then
-                allocate(temp(this%child_nodes_count * 2))
-                temp(1:size(this%child_nodes)) = this%child_nodes(1:size(this%child_nodes))
-                call move_alloc(from=temp,to=this%child_nodes)
+            elseif (size(this%child_nodes) == this%child_nodes_count) then
+                old_size = size(this%child_nodes)
+                new_size = old_size * 2
+                allocate(temp(new_size))
+
+                do i = 1, this%child_nodes_count
+                    call temp(i)%copy_from(this%child_nodes(i))
+                end do
+
+                do i = 1, this%child_nodes_count
+                    call this%child_nodes(i)%destroy_node()
+                end do
+                deallocate(this%child_nodes)
+
+                call move_alloc(temp, this%child_nodes)
             end if
+
             this%child_nodes_count = this%child_nodes_count + 1
-            this%child_nodes(this%child_nodes_count) = child
+            call this%child_nodes(this%child_nodes_count)%copy_from(child)
         end subroutine append_child_node
 
         subroutine create_number_node(this,s)
             class(json_node) :: this
             character(len=*) :: s
             integer :: err
-            this%child_nodes_count = 0
+            call this%init_node()
             if(index(s,".") /= 0) then
-                this%node_type = "FLOAT"
-                this%value_string = s
+                call assign_string(this%node_type,"FLOAT")
+                call assign_string(this%value_string,s)
                 read(s,*,iostat=err) this%value_float
-                if (err /= 0) this%node_type = "ERROR"
+                if (err /= 0) call assign_string(this%node_type,"ERROR")
             else
-                this%node_type = "INT"
-                this%value_string = s
+                call assign_string(this%node_type,"INT")
+                call assign_string(this%value_string,s)
                 read(s,*,iostat=err) this%value_int
-                if (err /= 0) this%node_type = "ERROR"
+                if (err /= 0) call assign_string(this%node_type,"ERROR")
             end if
         end subroutine create_number_node
 
@@ -218,32 +304,32 @@ module fjson
             class(json_node) :: this
             character(len=*) :: s
             character :: first, last
-            this%child_nodes_count = 0
+            call this%init_node()
             first = s(1:1)
             last = s(len(s):len(s))
             if(first == '"' .and. last == '"') then
-                this%node_type = "STRING"
-                this%value_string = s(2:len(s)-1)
+                call assign_string(this%node_type,"STRING")
+                call assign_string(this%value_string,s(2:len(s)-1))
             else
-                this%node_type = "ERROR"
-                this%value_string = s
+                call assign_string(this%node_type,"ERROR")
+                call assign_string(this%value_string,s)
             end if
         end subroutine create_string_node
 
         subroutine create_bool_node(this,s)
             class(json_node) :: this
             character(len=*) :: s
-            this%child_nodes_count = 0
+            call this%init_node()
             if(s == "true" .or. s == "false") then
-                this%node_type = "BOOL"
+                call assign_string(this%node_type,"BOOL")
                 this%value_bool = (s == "true")
-                this%value_string = s
+                call assign_string(this%value_string,s)
             elseif(s == "null") then
-                this%node_type = "NULL"
-                this%value_string = s
+                call assign_string(this%node_type,"NULL")
+                call assign_string(this%value_string,s)
             else
-                this%node_type = "ERROR"
-                this%value_string = s
+                call assign_string(this%node_type,"ERROR")
+                call assign_string(this%value_string,s)
             end if
         end subroutine create_bool_node
 
@@ -252,12 +338,13 @@ module fjson
             character(len=*) :: s
             integer :: pos
             type(token_t) :: tok
+            call this%init_node()
 
             pos = 1
             call next_token(s, pos, tok)
             if (tok%kind /= token_type_lbracket) then
-                this%node_type = "ERROR"
-                this%value_string = "Array must start with '['"
+                call assign_string(this%node_type,"ERROR")
+                call assign_string(this%value_string,"Array must start with '['")
                 this%child_nodes_count = 0
                 if (allocated(this%child_nodes)) deallocate(this%child_nodes)
                 return
@@ -271,12 +358,13 @@ module fjson
             character(len=*) :: s
             integer :: pos
             type(token_t) :: tok
+            call this%init_node()
 
             pos = 1
             call next_token(s, pos, tok)
             if (tok%kind /= token_type_lbrace) then
-                this%node_type = "ERROR"
-                this%value_string = "Object must start with '{'"
+                call assign_string(this%node_type,"ERROR")
+                call assign_string(this%value_string,"Object must start with '{'")
                 this%child_nodes_count = 0
                 if (allocated(this%child_nodes)) deallocate(this%child_nodes)
                 return
