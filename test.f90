@@ -7,6 +7,8 @@ program test
     call test_string()
     call test_number()
     call test_bool()
+    call test_array()
+    call test_object()
 
     contains
         subroutine assert(condition, message)
@@ -72,5 +74,57 @@ program test
             call assert(result_null%value_string == input_null, "Null: Node string value wrong - " // result_null%value_string)
             print *, "Boolean Test successful"
         end subroutine test_bool
+
+        subroutine test_array()
+            ! Given
+            type(json_node) :: result_simple
+            character(len=*), parameter :: input_simple = '[6, -7, "x", true, null]'
+            ! When
+            result_simple = parse_json(input_simple)
+            ! Then
+            call assert(result_simple%node_type == "ARRAY", "Array-Simple: Node type wrong - " // result_simple%node_type)
+            call assert(result_simple%child_nodes_count == 5, "Array-Simple: Child node count wrong")
+            call assert(result_simple%child_nodes(1)%value_int == 6, "Array-Simple: Element 1 wrong value")
+            call assert(result_simple%child_nodes(2)%value_int == -7, "Array-Simple: Element 2 wrong value")
+            call assert(result_simple%child_nodes(3)%value_string == "x", "Array-Simple: Element 3 wrong value")
+            call assert(result_simple%child_nodes(4)%value_bool, "Array-Simple: Element 4 wrong value")
+            call assert(result_simple%child_nodes(5)%value_string == "null", "Array-Simple: Element 5 wrong value")
+            print *, "Array Test successful"
+        end subroutine test_array
+
+        subroutine test_object()
+            ! Given
+            type(json_node) :: result_simple, result_complex
+            character(len=*), parameter :: input_simple = '{"number":-7, "string":"x", "bool":true, "null":null}'
+            character(len=*), parameter :: input_complex = '{"subobject":{"a":1,"b":2}, "subarray":[3,4]}'
+            ! When
+            result_simple = parse_json(input_simple)
+            result_complex = parse_json(input_complex)
+            ! Then
+            call assert(result_simple%node_type == "OBJECT", "Object-Simple: Node type wrong - " // result_simple%node_type)
+            call assert(result_simple%child_nodes_count == 4, "Object-Simple: Child node count wrong")
+            call assert(result_simple%child_nodes(1)%name == "number", "Object-Simple: Element 1 wrong name")
+            call assert(result_simple%child_nodes(1)%value_int == -7, "Object-Simple: Element 1 wrong value")
+            call assert(result_simple%child_nodes(2)%name == "string", "Object-Simple: Element 2 wrong name")
+            call assert(result_simple%child_nodes(2)%value_string == "x", "Object-Simple: Element 2 wrong value")
+            call assert(result_simple%child_nodes(3)%name == "bool", "Object-Simple: Element 3 wrong name")
+            call assert(result_simple%child_nodes(3)%value_bool, "Object-Simple: Element 3 wrong value")
+            call assert(result_simple%child_nodes(4)%name == "null", "Object-Simple: Element 4 wrong name")
+            call assert(result_simple%child_nodes(4)%value_string == "null", "Object-Simple: Element 4 wrong value")
+
+            call assert(result_complex%node_type == "OBJECT", "Object-Complex: Root node type wrong - " // result_complex%node_type)
+            call assert(result_complex%child_nodes_count == 2, "Object-Complex: Root child node count wrong")
+            call assert(result_complex%child_nodes(1)%node_type == "OBJECT", "Object-Complex: Child Object node type wrong")
+            call assert(result_complex%child_nodes(1)%child_nodes_count == 2, "Object-Complex: Child Object child node count wrong")
+            call assert(result_complex%child_nodes(1)%child_nodes(1)%name == "a", "Object-Complex: Child Object name a wrong")
+            call assert(result_complex%child_nodes(1)%child_nodes(1)%value_int == 1, "Object-Complex: Child Object value a wrong")
+            call assert(result_complex%child_nodes(1)%child_nodes(2)%name == "b", "Object-Complex: Child Object name b wrong")
+            call assert(result_complex%child_nodes(1)%child_nodes(2)%value_int == 2, "Object-Complex: Child Object value b wrong")
+            call assert(result_complex%child_nodes(2)%node_type == "ARRAY", "Object-Complex: Child Array node type wrong")
+            call assert(result_complex%child_nodes(2)%child_nodes_count == 2, "Object-Complex: Child Array child node count wrong")
+            call assert(result_complex%child_nodes(2)%child_nodes(1)%value_int == 3, "Object-Complex: Child Array first value wrong")
+            call assert(result_complex%child_nodes(2)%child_nodes(2)%value_int == 4, "Object-Complex: Child Array second value wrong")
+            print *, "Object Test successful"
+        end subroutine test_object
 
 end program test
