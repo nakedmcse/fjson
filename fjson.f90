@@ -16,6 +16,7 @@ module fjson
             procedure init_node
             procedure destroy_node
             procedure copy_from
+            procedure to_string
             procedure append_child_node
             procedure create_number_node
             procedure create_string_node
@@ -252,6 +253,50 @@ module fjson
                 end do
             end if
         end subroutine copy_from
+
+        subroutine to_string(this, s)
+            class(json_node), intent(in) :: this
+            character(len=:), allocatable :: s
+            call build_json(this, s)
+        end subroutine to_string
+
+        recursive subroutine build_json(node, s)
+            type(json_node), intent(in) :: node
+            character(len=:), allocatable :: s, tmp
+            integer :: i, n
+
+            select case (node%node_type)
+                case ("OBJECT")
+                    if (node%child_nodes_count == 0) then
+                        s = s // "{}"
+                    else
+                        tmp = "{"
+                        do i = 1, node%child_nodes_count
+                            tmp = tmp // '"' // node%child_nodes(i)%name // '":'
+                            call build_json(node%child_nodes(i), tmp)
+                            tmp = tmp // ","
+                        end do
+                        tmp = tmp(1:len(tmp)-1) // "}"
+                        s = s // tmp
+                    end if
+                case ("ARRAY")
+                    if (node%child_nodes_count == 0) then
+                        s = s // "[]"
+                    else
+                        tmp = "["
+                        do i = 1, node%child_nodes_count
+                            call build_json(node%child_nodes(i), tmp)
+                            tmp = tmp // ","
+                        end do
+                        tmp = tmp(1:len(tmp)-1) // "]"
+                        s = s // tmp
+                    end if
+                case ("STRING")
+                    s = s // '"' // node%value_string // '"'
+                case default
+                    s = s // node%value_string
+            end select
+        end subroutine build_json
 
         subroutine append_child_node(this, child)
             class(json_node), intent(inout) :: this

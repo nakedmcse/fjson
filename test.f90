@@ -9,6 +9,7 @@ program test
     call test_bool()
     call test_array()
     call test_object()
+    call test_to_string()
 
     contains
         subroutine assert(condition, message)
@@ -131,4 +132,22 @@ program test
             print *, "Object Test successful"
         end subroutine test_object
 
+        subroutine test_to_string()
+            ! Given
+            type(json_node) :: result_simple, result_complex, first, second
+            character(len=*), parameter :: input_simple = '{"number":-7,"string":"x","bool":true,"null":null}'
+            character(len=*), parameter :: input_complex = '{"subobject":{"a":1,"b":2},"subarray":[3,4]}'
+            character(len=:), allocatable :: simple_json, complex_json
+            ! When
+            result_simple = parse_json(input_simple)
+            simple_json = ""
+            call result_simple%to_string(simple_json)
+            result_complex = parse_json(input_complex)
+            complex_json = ""
+            call result_complex%to_string(complex_json)
+            ! Then
+            call assert(simple_json == input_simple, "ToString: Simple input does not match")
+            call assert(complex_json == input_complex, "ToString: Complex input does not match")
+            print *, "ToString test passed"
+        end subroutine test_to_string
 end program test
