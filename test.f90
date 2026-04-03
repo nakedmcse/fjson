@@ -21,12 +21,12 @@ program test
         subroutine test_string()
             ! Given
             type(json_node) :: result
-            character(len=*), parameter :: input = '"test-string"'
+            character(len=*), parameter :: input = '"test-\"string\""'
             ! When
             result = parse_json(input)
             ! Then
             call assert(result%node_type == "STRING", "String: Node type wrong - " // result%node_type // " " // result%value_string)
-            call assert(result%value_string == "test-string", "String: Node value wrong - " // result%value_string)
+            call assert(result%value_string == 'test-\"string\"', "String: Node value wrong - " // result%value_string)
             print *, "String Test successful"
         end subroutine test_string
 
