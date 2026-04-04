@@ -1,0 +1,27 @@
+# Build and test
+
+name: Build
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+      - name: Update repos
+        run: sudo apt-get update
+      - name: Setup GCC
+        uses: Dup4/actions-setup-gcc@v1
+        with:
+          version: latest
+      - name: Build module
+        run: make all
+      - name: Test module
+        run: test
+      - name: Clean up
+        run: make clean
