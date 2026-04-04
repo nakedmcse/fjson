@@ -7,7 +7,7 @@ fjson: fjson.f90 fjson_tokenizer.f90
 	rm -f *.o
 
 test: fjson.a test.f90
-	gfortran -ffree-line-length-0 -o test fjson.a test.f90
+	gfortran -ffree-line-length-0 -o test test.f90 fjson.a
 
 clean:
 	rm -f *.o
