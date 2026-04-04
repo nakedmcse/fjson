@@ -22,6 +22,6 @@ jobs:
       - name: Build module
         run: make all
       - name: Test module
-        run: test
+        run: ./test
       - name: Clean up
         run: make clean
