@@ -34,6 +34,28 @@ module fjson
             ptr = s
         end subroutine assign_string
 
+        function get_node(base, target) result(res)
+            character(len=*), intent(in) :: target
+            type(json_node) :: base, res
+            call res%init_node()
+            call assign_string(res%node_type, "ERROR")
+            call assign_string(res%value_string, "Node not found")
+            call search_ast(res, base, target, "")
+        end function
+
+        recursive subroutine search_ast(res, base, target, prefix)
+            character(len=*), intent(in) :: target, prefix
+            type(json_node) :: base, res
+            integer :: i
+            if (target == "." .or. target == "" .or. target == prefix) then
+                call res%copy_from(base)
+            else if (base%child_nodes_count > 0) then
+                do i = 1, base%child_nodes_count
+                    call search_ast(res, base%child_nodes(i), target, prefix // "." // base%child_nodes(i)%name)
+                end do
+            end if
+        end subroutine search_ast
+
         function parse_json(s) result(res)
             character(len=*), intent(in) :: s
             type(json_node) :: res

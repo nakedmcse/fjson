@@ -10,6 +10,7 @@ program test
     call test_array()
     call test_object()
     call test_to_string()
+    call test_get_node()
 
     contains
         subroutine assert(condition, message)
@@ -150,4 +151,35 @@ program test
             call assert(complex_json == input_complex, "ToString: Complex input does not match")
             print *, "ToString test passed"
         end subroutine test_to_string
+
+        subroutine test_get_node()
+            ! Given
+            type(json_node) :: ast_complex, search_root, search_b, search_subarray, search_missing
+            character(len=*), parameter :: input_complex = '{"subobject":{"a":1,"b":2},"subarray":[3,4]}'
+            ! When
+            ast_complex = parse_json(input_complex)
+            search_root = get_node(ast_complex,".")
+            search_b = get_node(ast_complex,".subobject.b")
+            search_subarray = get_node(ast_complex,".subarray")
+            search_missing = get_node(ast_complex,".missing")
+            ! Then
+            call assert(search_root%node_type == "OBJECT", "GetNode-Root: Type should be OBJECT")
+            call assert(search_root%child_nodes_count == 2, "GetNode-Root: Should have 2 child nodes")
+            call assert(search_root%child_nodes(1)%name == "subobject", "GetNode-Root: Child 1 should be subobject")
+            call assert(search_root%child_nodes(2)%name == "subarray", "GetNode-Root: Child 2 should be subarray")
+
+            call assert(search_b%node_type == "INT", "GetNode-B: Type should be INT")
+            call assert(search_b%name == "b", "GetNode-B: Name should be b")
+            call assert(search_b%value_int == 2, "GetNode-B: Value_int should be 2")
+
+            call assert(search_subarray%node_type == "ARRAY", "GetNode-Subarray: Type should be ARRAY")
+            call assert(search_subarray%name == "subarray", "GetNode-Subarray: Name should be subarray")
+            call assert(search_subarray%child_nodes_count == 2, "GetNode-Subaray: Should have 2 child nodes")
+            call assert(search_subarray%child_nodes(1)%value_int == 3, "GetNode-Subarray: Child 1 value int should be 3")
+            call assert(search_subarray%child_nodes(2)%value_int == 4, "GetNode-Subarray: Child 2 value int should be 4")
+
+            call assert(search_missing%node_type == "ERROR", "GetNode-Missing: Type should be ERROR")
+            call assert(search_missing%value_string == "Node not found", "GetNode-Missing: Value string should be Node not found")
+            print *, "GetNode test passed"
+        end subroutine test_get_node
 end program test
