@@ -1,4 +1,9 @@
 # FJSON
+
+![tests](https://github.com/nakedmcse/fjson/actions/workflows/build.yml/badge.svg)
+[![GitHub issues](https://img.shields.io/github/issues/nakedmcse/fjson.png)](https://github.com/nakedmcse/fjson/issues)
+[![last-commit](https://img.shields.io/github/last-commit/nakedmcse/fjson)](https://github.com/nakedmcse/fjson/commits/master)
+
 A lightweight, small, pure FORTRAN JSON module.
 
 ## Building
