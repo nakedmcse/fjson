@@ -58,7 +58,7 @@ program extract
     use fjson
     implicit none
     character(len=*), parameter :: input_json = '{"subobject":{"a":1,"b":2}, "subarray":[3,4]}'
-    type(json_node) :: parsed_data
+    type(json_node) :: parsed_data, extract_data
     integer :: a_value, b_value, array_fist
     
     ! Parse string to AST
@@ -69,8 +69,10 @@ program extract
     end if
     
     ! Get data from AST using get_node
-    a_value = get_node(parsed_data,".subobject.a")%value_int
-    b_value = get_node(parsed_date,".subobject.b")%value_int
+    extract_data = get_node(parsed_data,".subobject.a")
+    a_value = extract_data%value_int
+    extract_data = get_node(parsed_date,".subobject.b")
+    b_value = extract_data%value_int
     
     ! Get data from AST directly
     array_first = parsed_data%child_nodes(2)%child_nodes(1)%value_int
