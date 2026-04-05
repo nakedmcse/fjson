@@ -101,12 +101,14 @@ program test
 
         subroutine test_object()
             ! Given
-            type(json_node) :: result_simple, result_complex, first, second
+            type(json_node) :: result_simple, result_complex, result_complex_2, first, second
             character(len=*), parameter :: input_simple = '{"number":-7, "string":"x", "bool":true, "null":null}'
             character(len=*), parameter :: input_complex = '{"subobject":{"a":1,"b":2}, "subarray":[3,4]}'
+            character(len=*), parameter :: input_complex_2 = '{"token":"t","files":[{"token":"a","options":{"a":1}},{"token":"b","options":{"a":2}}]}'
             ! When
             result_simple = parse_json(input_simple)
             result_complex = parse_json(input_complex)
+            result_complex_2 = parse_json(input_complex_2)
             ! Then
             call assert(result_simple%node_type == "OBJECT", "Object-Simple: Node type wrong - " // result_simple%node_type)
             call assert(result_simple%child_nodes_count == 4, "Object-Simple: Child node count wrong")
@@ -135,6 +137,26 @@ program test
             call assert(second%child_nodes_count == 2, "Object-Complex: Child Array child node count wrong")
             call assert(second%child_nodes(1)%value_int == 3, "Object-Complex: Child Array first value wrong")
             call assert(second%child_nodes(2)%value_int == 4, "Object-Complex: Child Array second value wrong")
+
+            call assert(result_complex_2%node_type == "OBJECT", "Object-Complex2: Root node type wrong")
+            call assert(result_complex_2%child_nodes_count == 2, "Object-Complex2: Root child node count wrong")
+            call assert(result_complex_2%child_nodes(1)%name == "token", "Object-Complex2: First child node name wrong")
+            call assert(result_complex_2%child_nodes(1)%node_type == "STRING", "Object-Complex2: First child node type wrong")
+            call assert(result_complex_2%child_nodes(2)%name == "files", "Object-Complex2: Second child node name wrong")
+            call assert(result_complex_2%child_nodes(2)%node_type == "ARRAY", "Object-Complex2: Second child node type wrong")
+            call assert(result_complex_2%child_nodes(2)%child_nodes_count == 2, "Object-Complex2: Second child node children count wrong")
+            call first%copy_from(result_complex_2%child_nodes(2)%child_nodes(1))
+            call assert(first%node_type == "OBJECT", "Object-Complex2: First array object wrong node type")
+            call assert(first%child_nodes_count == 2, "Object-Complex2: First array object wrong child node count")
+            call assert(first%child_nodes(1)%name == "token", "Object-Complex2: First array object first child wrong name")
+            call assert(first%child_nodes(2)%name == "options", "Object-Complex2: First array object second child wrong name")
+            call assert(first%child_nodes(2)%child_nodes(1)%value_int == 1, "Object-Complex2: First array object options wrong value")
+            call first%copy_from(result_complex_2%child_nodes(2)%child_nodes(2))
+            call assert(first%node_type == "OBJECT", "Object-Complex2: Second array object wrong node type")
+            call assert(first%child_nodes_count == 2, "Object-Complex2: Second array object wrong child node count")
+            call assert(first%child_nodes(1)%name == "token", "Object-Complex2: Second array object first child wrong name")
+            call assert(first%child_nodes(2)%name == "options", "Object-Complex2: Second array object second child wrong name")
+            call assert(first%child_nodes(2)%child_nodes(1)%value_int == 2, "Object-Complex2: Second array object options wrong value")
             call assert(.not. associated(fjson_error), "Object: Error should not be set")
             print *, "Object Test successful"
         end subroutine test_object
