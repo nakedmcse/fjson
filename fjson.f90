@@ -25,6 +25,8 @@ module fjson
             procedure create_object_node
     end type json_node
 
+    type(json_node), pointer, public :: fjson_error => null()
+
     contains
         subroutine assign_string(ptr,s)
             character(len=:), pointer :: ptr
@@ -62,6 +64,7 @@ module fjson
             integer :: pos
             type(token_t) :: tok
 
+            if (associated(fjson_error)) fjson_error => null()
             pos = 1
             call parse_value(res, s, pos, "")
 
@@ -105,6 +108,7 @@ module fjson
                     call assign_string(node%node_type,"ERROR")
                     call assign_string(node%value_string,tok%text)
                     node%child_nodes_count = 0
+                    fjson_error = node
             end select
             call assign_string(node%name,key)
         end subroutine parse_value
@@ -145,6 +149,7 @@ module fjson
                     call assign_string(this%value_string,"Expected ',' or ']' in array")
                     if (allocated(this%child_nodes)) deallocate(this%child_nodes)
                     this%child_nodes_count = 0
+                    fjson_error = this
                     return
                 end select
             end do
@@ -180,6 +185,7 @@ module fjson
                     call assign_string(this%value_string,"Expected string key in object")
                     if (allocated(this%child_nodes)) deallocate(this%child_nodes)
                     this%child_nodes_count = 0
+                    fjson_error = this
                     return
                 end if
 
@@ -192,6 +198,7 @@ module fjson
                     call assign_string(this%value_string,"Expected ':' after object key")
                     if (allocated(this%child_nodes)) deallocate(this%child_nodes)
                     this%child_nodes_count = 0
+                    fjson_error = this
                     return
                 end if
 
@@ -209,6 +216,7 @@ module fjson
                     call assign_string(this%value_string,"Expected ',' or '}' in object")
                     if (allocated(this%child_nodes)) deallocate(this%child_nodes)
                     this%child_nodes_count = 0
+                    fjson_error = this
                     return
                 end select
             end do
@@ -358,12 +366,18 @@ module fjson
                 call assign_string(this%node_type,"FLOAT")
                 call assign_string(this%value_string,s)
                 read(s,*,iostat=err) this%value_float
-                if (err /= 0) call assign_string(this%node_type,"ERROR")
+                if (err /= 0) then
+                    call assign_string(this%node_type,"ERROR")
+                    fjson_error = this
+                end if
             else
                 call assign_string(this%node_type,"INT")
                 call assign_string(this%value_string,s)
                 read(s,*,iostat=err) this%value_int
-                if (err /= 0) call assign_string(this%node_type,"ERROR")
+                if (err /= 0) then
+                    call assign_string(this%node_type,"ERROR")
+                    fjson_error = this
+                end if
             end if
         end subroutine create_number_node
 
@@ -380,6 +394,7 @@ module fjson
             else
                 call assign_string(this%node_type,"ERROR")
                 call assign_string(this%value_string,s)
+                fjson_error = this
             end if
         end subroutine create_string_node
 
@@ -397,6 +412,7 @@ module fjson
             else
                 call assign_string(this%node_type,"ERROR")
                 call assign_string(this%value_string,s)
+                fjson_error = this
             end if
         end subroutine create_bool_node
 
@@ -414,6 +430,7 @@ module fjson
                 call assign_string(this%value_string,"Array must start with '['")
                 this%child_nodes_count = 0
                 if (allocated(this%child_nodes)) deallocate(this%child_nodes)
+                fjson_error = this
                 return
             end if
 
@@ -434,6 +451,7 @@ module fjson
                 call assign_string(this%value_string,"Object must start with '{'")
                 this%child_nodes_count = 0
                 if (allocated(this%child_nodes)) deallocate(this%child_nodes)
+                fjson_error = this
                 return
             end if
 

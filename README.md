@@ -51,6 +51,8 @@ This is represented by a tree of nodes of type `json_node` with the following fi
 ## Parsing
 This is simply passing the JSON as a string to `parse_json`, which will then return a `json_node` tree containing the parsed data.
 Data can then be read from the AST using either `get_node` (passing it the tree and a fully qualified name), or by referencing the AST directly.
+
+If there is an error during parsing then the `fjson_error` pointer will be set to the node that threw the error.
 ```fortran
 program extract
     use fjson
@@ -61,6 +63,10 @@ program extract
     
     ! Parse string to AST
     parsed_data = parse_json(input_json)
+    if (associated(fjson_error)) then
+        print *, "Error parsing input"
+        error stop
+    end if
     
     ! Get data from AST using get_node
     a_value = get_node(parsed_data,".subobject.a")%value_int

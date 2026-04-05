@@ -11,6 +11,7 @@ program test
     call test_object()
     call test_to_string()
     call test_get_node()
+    call test_error()
 
     contains
         subroutine assert(condition, message)
@@ -31,6 +32,7 @@ program test
             ! Then
             call assert(result%node_type == "STRING", "String: Node type wrong - " // result%node_type // " " // result%value_string)
             call assert(result%value_string == 'test-\"string\"', "String: Node value wrong - " // result%value_string)
+            call assert(.not. associated(fjson_error), "String: Error should not be set")
             print *, "String Test successful"
         end subroutine test_string
 
@@ -50,6 +52,7 @@ program test
             call assert(result_float%node_type == "FLOAT", "Float: Node type wrong - " // result_float%node_type)
             call assert(result_float%value_string == input_float, "Float: Node string value wrong - " // result_float%value_string)
             call assert(result_float%value_float == -67.67, "Float: Node real value wrong")
+            call assert(.not. associated(fjson_error), "Number: Error should not be set")
             print *, "Number Test successful"
         end subroutine test_number
 
@@ -74,6 +77,7 @@ program test
 
             call assert(result_null%node_type == "NULL", "Null: Node type wrong - " // result_null%node_type)
             call assert(result_null%value_string == input_null, "Null: Node string value wrong - " // result_null%value_string)
+            call assert(.not. associated(fjson_error), "Boolean: Error should not be set")
             print *, "Boolean Test successful"
         end subroutine test_bool
 
@@ -91,6 +95,7 @@ program test
             call assert(result_simple%child_nodes(3)%value_string == "x", "Array-Simple: Element 3 wrong value")
             call assert(result_simple%child_nodes(4)%value_bool, "Array-Simple: Element 4 wrong value")
             call assert(result_simple%child_nodes(5)%value_string == "null", "Array-Simple: Element 5 wrong value")
+            call assert(.not. associated(fjson_error), "Array-Simple: Error should not be set")
             print *, "Array Test successful"
         end subroutine test_array
 
@@ -130,6 +135,7 @@ program test
             call assert(second%child_nodes_count == 2, "Object-Complex: Child Array child node count wrong")
             call assert(second%child_nodes(1)%value_int == 3, "Object-Complex: Child Array first value wrong")
             call assert(second%child_nodes(2)%value_int == 4, "Object-Complex: Child Array second value wrong")
+            call assert(.not. associated(fjson_error), "Object: Error should not be set")
             print *, "Object Test successful"
         end subroutine test_object
 
@@ -182,4 +188,16 @@ program test
             call assert(search_missing%value_string == "Node not found", "GetNode-Missing: Value string should be Node not found")
             print *, "GetNode test passed"
         end subroutine test_get_node
+
+        subroutine test_error()
+            ! Given
+            type(json_node) :: res
+            character(len=*), parameter :: input_complex = '{"subobject":{"a","b":2},"subarray":[3,4]}'
+            ! When
+            res = parse_json(input_complex)
+            ! Then
+            call assert(associated(fjson_error), "Error: Error should be set")
+            call assert(fjson_error%node_type == "ERROR", "Error: Error node type wrong")
+            print *, "Error test passed"
+        end subroutine test_error
 end program test
