@@ -1,10 +1,11 @@
 ! Fortran JSON AST
 module fjson
     use fjson_tokenizer
+    use, intrinsic :: iso_fortran_env, only: int64
     implicit none
 
     type, public :: json_node
-        integer :: value_int = 0
+        integer(int64) :: value_int = 0
         real :: value_float = 0.0
         logical :: value_bool = .false.
         character(len=:), pointer :: value_string => null()
@@ -362,7 +363,7 @@ module fjson
             character(len=*) :: s
             integer :: err
             call this%init_node()
-            if(index(s,".") /= 0) then
+            if(index(s,".") /= 0 .or. index(s,'e') /= 0 .or. index(s,'E') /= 0) then
                 call assign_string(this%node_type,"FLOAT")
                 call assign_string(this%value_string,s)
                 read(s,*,iostat=err) this%value_float

@@ -104,7 +104,7 @@ program test
             type(json_node) :: result_simple, result_complex, result_complex_2, first, second
             character(len=*), parameter :: input_simple = '{"number":-7, "string":"x", "bool":true, "null":null}'
             character(len=*), parameter :: input_complex = '{"subobject":{"a":1,"b":2}, "subarray":[3,4]}'
-            character(len=*), parameter :: input_complex_2 = '{"token":"t","files":[{"token":"a","options":{"a":1}},{"token":"b","options":{"a":2}}]}'
+            character(len=*), parameter :: input_complex_2 = '{"token":"t","files":[{"token":"a","options":{"a":1}},{"token":"b","options":{"a":1766428873426}}]}'
             ! When
             result_simple = parse_json(input_simple)
             result_complex = parse_json(input_complex)
@@ -156,7 +156,7 @@ program test
             call assert(first%child_nodes_count == 2, "Object-Complex2: Second array object wrong child node count")
             call assert(first%child_nodes(1)%name == "token", "Object-Complex2: Second array object first child wrong name")
             call assert(first%child_nodes(2)%name == "options", "Object-Complex2: Second array object second child wrong name")
-            call assert(first%child_nodes(2)%child_nodes(1)%value_int == 2, "Object-Complex2: Second array object options wrong value")
+            call assert(first%child_nodes(2)%child_nodes(1)%value_int == 1766428873426_int64, "Object-Complex2: Second array object options wrong value")
             call assert(.not. associated(fjson_error), "Object: Error should not be set")
             print *, "Object Test successful"
         end subroutine test_object
