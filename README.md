@@ -23,7 +23,7 @@ use fjson
 
 Then to compile, use the following:
 ```shell
-gfortran -o your_program fjson.a your_program.f90
+gfortran -o your_program your_program.f90 fjson.a
 ```
 
 ### Testing
