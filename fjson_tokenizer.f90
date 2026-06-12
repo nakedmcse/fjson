@@ -207,6 +207,24 @@ contains
             end do
         end if
 
+        if (pos <= len(s) .and. (s(pos:pos) == 'e' .or. s(pos:pos) == 'E')) then
+            pos = pos + 1
+
+            if (pos <= len(s) .and. (s(pos:pos) == '+' .or. s(pos:pos) == '-')) then
+                pos = pos + 1
+            end if
+
+            if (pos > len(s) .or. .not. is_digit(s(pos:pos))) then
+                tok%kind = token_type_error
+                tok%text = s(start:min(len(s), pos))
+                return
+            end if
+
+            do while (pos <= len(s) .and. is_digit(s(pos:pos)))
+                pos = pos + 1
+            end do
+        end if
+
         tok%kind = token_type_number
         tok%text = s(start:pos-1)
     end subroutine scan_number

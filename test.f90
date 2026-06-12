@@ -38,12 +38,14 @@ program test
 
         subroutine test_number()
             ! Given
-            type(json_node) :: result_int, result_float
+            type(json_node) :: result_int, result_float, result_scientific
             character(len=*), parameter :: input_int = '-67'
             character(len=*), parameter :: input_float = '-67.67'
+            character(len=*), parameter :: input_scientific = '3.7e5'
             ! When
             result_int = parse_json(input_int)
             result_float =  parse_json(input_float)
+            result_scientific = parse_json(input_scientific)
             ! Then
             call assert(result_int%node_type == "INT", "Integer: Node type wrong - " // result_int%node_type // " " // result_int%value_string)
             call assert(result_int%value_string == input_int, "Integer: Node string value wrong - " // result_int%value_string)
@@ -52,6 +54,11 @@ program test
             call assert(result_float%node_type == "FLOAT", "Float: Node type wrong - " // result_float%node_type)
             call assert(result_float%value_string == input_float, "Float: Node string value wrong - " // result_float%value_string)
             call assert(result_float%value_float == -67.67, "Float: Node real value wrong")
+
+            call assert(result_scientific%node_type == "FLOAT", "Scientific: Node type wrong - " // result_scientific%node_type)
+            call assert(result_scientific%value_string == input_scientific, "Scientific: Node string value wrong - " // result_scientific%value_string)
+            call assert(result_scientific%value_float == 370000, "Scientific: Node real value wrong")
+
             call assert(.not. associated(fjson_error), "Number: Error should not be set")
             print *, "Number Test successful"
         end subroutine test_number
